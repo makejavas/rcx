@@ -467,6 +467,13 @@ public class Rclone {
         }
     }
 
+    private boolean isAliDriver(RemoteItem remote) {
+        if ("webdav".equals(remote.getTypeReadable())) {
+            return remote.getName().startsWith("ali") || (remote.getDisplayName() != null && remote.getDisplayName().startsWith("ali"));
+        }
+        return false;
+    }
+
     public Process serve(int protocol, int port, boolean allowRemoteAccess, @Nullable String user,
                          @Nullable String password, @NonNull RemoteItem remote, @Nullable String servePath,
                          @Nullable String baseUrl) {
@@ -498,14 +505,9 @@ public class Rclone {
 
         ArrayList<String> params;
         // 挂载阿里云盘webdav，自动添加header
-        if ("webdav".equals(remote.getTypeReadable())) {
-            if (remote.getName().startsWith("ali") || (remote.getDisplayName() != null && remote.getDisplayName().startsWith("ali"))) {
-                params = new ArrayList<>(Arrays.asList(
-                        createCommandWithOptions("serve", commandProtocol, "--header", "Referer:", "--addr", address, path)));
-            } else {
-                params = new ArrayList<>(Arrays.asList(
-                        createCommandWithOptions("serve", commandProtocol, "--addr", address, path)));
-            }
+        if (isAliDriver(remote)) {
+            params = new ArrayList<>(Arrays.asList(
+                    createCommandWithOptions("serve", commandProtocol, "--header", "Referer:", "--addr", address, path)));
         } else {
             params = new ArrayList<>(Arrays.asList(
                     createCommandWithOptions("serve", commandProtocol, "--addr", address, path)));
@@ -556,9 +558,17 @@ public class Rclone {
         String remotePath = (remote.compareTo("//" + remoteName) == 0) ? remoteName + ":" + localRemotePath : remoteName + ":" + localRemotePath + remote;
 
         if (syncDirection == 1) {
-            command = createCommandWithOptions("sync", localPath, remotePath, "--transfers", "1", "--stats=1s", "--stats-log-level", "NOTICE");
+            if (isAliDriver(remoteItem)) {
+                command = createCommandWithOptions("sync", localPath, remotePath, "--header", "Referer:", "--transfers", "1", "--stats=1s", "--stats-log-level", "NOTICE");
+            } else {
+                command = createCommandWithOptions("sync", localPath, remotePath, "--transfers", "1", "--stats=1s", "--stats-log-level", "NOTICE");
+            }
         } else if (syncDirection == 2) {
-            command = createCommandWithOptions("sync", remotePath, localPath, "--transfers", "1", "--stats=1s", "--stats-log-level", "NOTICE");
+            if (isAliDriver(remoteItem)) {
+                command = createCommandWithOptions("sync", remotePath, localPath, "--header", "Referer:", "--transfers", "1", "--stats=1s", "--stats-log-level", "NOTICE");
+            } else {
+                command = createCommandWithOptions("sync", remotePath, localPath, "--transfers", "1", "--stats=1s", "--stats-log-level", "NOTICE");
+            }
         } else {
             return null;
         }
@@ -591,7 +601,12 @@ public class Rclone {
 
         localFilePath = encodePath(localFilePath);
 
-        command = createCommandWithOptions("copy", remoteFilePath, localFilePath, "--transfers", "1", "--stats=1s", "--stats-log-level", "NOTICE");
+        // 挂载阿里云盘webdav，自动添加header
+        if (isAliDriver(remote)) {
+            command = createCommandWithOptions("copy", remoteFilePath, localFilePath, "--header", "Referer:", "--transfers", "1", "--stats=1s", "--stats-log-level", "NOTICE");
+        } else {
+            command = createCommandWithOptions("copy", remoteFilePath, localFilePath, "--transfers", "1", "--stats=1s", "--stats-log-level", "NOTICE");
+        }
 
         String[] env = getRcloneEnv();
         try {
@@ -643,7 +658,11 @@ public class Rclone {
             path = (uploadPath.compareTo("//" + remoteName) == 0) ? remoteName + ":" + localRemotePath : remoteName + ":" + localRemotePath + uploadPath;
         }
 
-        command = createCommandWithOptions("copy", uploadFile, path, "--transfers", "1", "--stats=1s", "--stats-log-level", "NOTICE");
+        if (isAliDriver(remote)) {
+            command = createCommandWithOptions("copy", uploadFile, path, "--header", "Referer:", "--transfers", "1", "--stats=1s", "--stats-log-level", "NOTICE");
+        } else {
+            command = createCommandWithOptions("copy", uploadFile, path, "--transfers", "1", "--stats=1s", "--stats-log-level", "NOTICE");
+        }
 
         String[] env = getRcloneEnv();
         try {
