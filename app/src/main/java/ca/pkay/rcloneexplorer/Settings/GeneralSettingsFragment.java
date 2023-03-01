@@ -488,7 +488,7 @@ public class GeneralSettingsFragment extends Fragment {
         final List<String> locales = Arrays.asList(context.getResources().getStringArray(R.array.locales));
 
         int initialSelection = locales.indexOf(
-                pref.getString(context.getString(R.string.pref_key_locale), "en-US"));
+                pref.getString(context.getString(R.string.pref_key_locale), "zh-CN"));
 
         builder.setTitle(R.string.pref_locale_dlg_title);
         final int[] userSelected = new int[1];

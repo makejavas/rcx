@@ -496,8 +496,20 @@ public class Rclone {
             address = "127.0.0.1:" + String.valueOf(port);
         }
 
-        ArrayList<String> params = new ArrayList<>(Arrays.asList(
-                createCommandWithOptions("serve", commandProtocol, "--addr", address, path)));
+        ArrayList<String> params;
+        // 挂载阿里云盘webdav，自动添加header
+        if ("webdav".equals(remote.getTypeReadable())) {
+            if (remote.getName().startsWith("ali") || (remote.getDisplayName() != null && remote.getDisplayName().startsWith("ali"))) {
+                params = new ArrayList<>(Arrays.asList(
+                        createCommandWithOptions("serve", commandProtocol, "--header", "Referer:", "--addr", address, path)));
+            } else {
+                params = new ArrayList<>(Arrays.asList(
+                        createCommandWithOptions("serve", commandProtocol, "--addr", address, path)));
+            }
+        } else {
+            params = new ArrayList<>(Arrays.asList(
+                    createCommandWithOptions("serve", commandProtocol, "--addr", address, path)));
+        }
 
         if(null != user && user.length() > 0) {
             params.add("--user");
